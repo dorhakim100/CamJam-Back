@@ -5,8 +5,9 @@ import { logger } from '../../services/logger.service'
 export class AuthController {
   static async login(req: Request, res: Response) {
     const { email, password } = req.body
+    const isRemember = req.body.isRemember
     try {
-      const user = await AuthService.login(email, password)
+      const user = await AuthService.login(email, password, isRemember)
       const loginToken = AuthService.getLoginToken(user)
 
       res.cookie('loginToken', loginToken, { sameSite: 'none', secure: true })

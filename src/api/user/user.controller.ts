@@ -22,6 +22,19 @@ export class UserController {
       res.status(500).send({ err: 'Failed to get user' })
     }
   }
+  static async getRememberMe(req: Request, res: Response) {
+    try {
+      const requiredId = req.params.id
+      const user = await UserService.getById(req.params.id)
+      if (!user) {
+        return res.status(404).send({ err: 'User not found' })
+      }
+      res.send(user)
+    } catch (err) {
+      logger.error('Failed to get user', err)
+      res.status(400).send({ err: 'Failed to get user' })
+    }
+  }
 
   static async updateUser(req: Request, res: Response) {
     try {

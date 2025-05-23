@@ -4,10 +4,14 @@ import { User, IUser, ICreateUser } from '../user/user.model'
 import { logger } from '../../services/logger.service'
 
 export class AuthService {
-  static async login(email: string, password: string): Promise<IUser> {
+  static async login(
+    email: string,
+    password: string,
+    isRemember: boolean
+  ): Promise<IUser> {
     const user = await User.findByEmail(email)
     if (!user) throw new Error('Invalid email or password')
-
+    if (isRemember) return user
     const match = await bcrypt.compare(password, user.password)
     if (!match) throw new Error('Invalid email or password')
 
