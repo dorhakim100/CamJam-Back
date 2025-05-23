@@ -20,6 +20,11 @@ export class AuthController {
   static async signup(req: Request, res: Response) {
     try {
       const credentials = req.body
+      if (!credentials) {
+        res.status(400).send({ err: 'Missing signup information' })
+        return
+      }
+
       const account = await AuthService.signup(credentials)
       const loginToken = AuthService.getLoginToken(account)
 

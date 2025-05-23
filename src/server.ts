@@ -5,6 +5,7 @@ import express from 'express'
 import cookieParser from 'cookie-parser'
 import dotenv from 'dotenv'
 import mongoose from 'mongoose'
+import { prisma } from '../src/db/prisma'
 
 import { authRoutes } from './api/auth/auth.routes'
 import { userRoutes } from './api/user/user.routes'
@@ -24,6 +25,13 @@ const server = http.createServer(app)
 app.use(cookieParser())
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
+
+prisma
+  .$connect()
+  .then(() => console.log('🔗 Postgres (Prisma) connected'))
+  .catch((err: string) =>
+    console.error('❌ Postgres (Prisma) connection error', err)
+  )
 
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.resolve('public')))
