@@ -21,6 +21,8 @@ export const protect = async (
 ) => {
   let token
 
+  console.log(req)
+
   if (
     req.headers.authorization &&
     req.headers.authorization.startsWith('Bearer')

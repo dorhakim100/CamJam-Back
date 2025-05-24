@@ -36,5 +36,5 @@ model Room {
   host             User     @relation("HostRooms", fields: [host_id], references: [id], onDelete: Cascade)
   is_private       Boolean  @default(false)
   max_participants Int      @default(10)
-  created_at       BigInt   @default(dbgenerated("(extract(epoch from now()) * 1000)::bigint"))
+  created_at       Int
 }

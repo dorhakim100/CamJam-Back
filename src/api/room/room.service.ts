@@ -54,4 +54,13 @@ export class RoomService {
       throw err
     }
   }
+  static async add(room: IRoom) {
+    try {
+      const addedRoom = await Room.create(room)
+      return addedRoom
+    } catch (err) {
+      logger.error('Failed to add item', err)
+      throw err
+    }
+  }
 }

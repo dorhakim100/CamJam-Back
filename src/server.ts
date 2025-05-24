@@ -57,7 +57,7 @@ async function init() {
     // Routes
     app.use('/api/auth', authRoutes)
     app.use('/api/user', userRoutes)
-    // app.use('/api/item', itemRoutes)
+    app.use('/api/room', roomRoutes)
 
     // Setup Socket.IO
     await setupSocketAPI(server)
