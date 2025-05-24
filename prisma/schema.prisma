@@ -20,8 +20,21 @@ model User {
   password String
   fullname  String
   imgUrl String?
+  rooms         Room[]   @relation("HostRooms")
 
 
-    @@map("users")     // ← tell Prisma this model lives in the `users` table
+  @@map("users")     // ← tell Prisma this model lives in the `users` table
 
+}
+
+
+model Room {
+  id               String   @id @default(uuid()) @db.Uuid
+  name             String
+  description      String?
+  host_id          String   @db.Uuid
+  host             User     @relation("HostRooms", fields: [host_id], references: [id], onDelete: Cascade)
+  is_private       Boolean  @default(false)
+  max_participants Int      @default(10)
+  created_at       BigInt   @default(dbgenerated("(extract(epoch from now()) * 1000)::bigint"))
 }

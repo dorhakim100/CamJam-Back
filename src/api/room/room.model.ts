@@ -1,41 +1,26 @@
-import mongoose from 'mongoose'
+import { PrismaClient, Room as PrismaRoom } from '@prisma/client'
 
-export interface RRoom extends mongoose.Document {
-  title: string
-  description: string
-  price: number
-  createdBy: mongoose.Types.ObjectId
-  imgUrl?: string
-  createdAt: Date
-  updatedAt: Date
+const prisma = new PrismaClient()
+export interface ICreateRoom {
+  host_id: string
+  is_private: boolean
+  access_code: string
+  max_participants?: number
+  created_at?: number
+  name: string
 }
 
-const roomSchema = new mongoose.Schema(
-  {
-    title: {
-      type: String,
-      required: true,
-    },
-    description: {
-      type: String,
-      required: true,
-    },
-    price: {
-      type: Number,
-      required: true,
-    },
-    createdBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-    },
-    imgUrl: {
-      type: String,
-    },
-  },
-  {
-    timestamps: true,
-  }
-)
+export type IRoom = PrismaRoom
 
-export const Room = mongoose.model<RRoom>('Room', roomSchema)
+export const Room = {
+  ...prisma.room,
+
+  async create(data: ICreateRoom): Promise<IRoom> {
+    const room = await prisma.room.create({
+      data,
+    })
+    console.log('Room created:', room)
+
+    return room
+  },
+}
