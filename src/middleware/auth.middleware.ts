@@ -21,17 +21,19 @@ export const protect = async (
 ) => {
   let token
 
-  console.log(req)
+  const loginToken = req.cookies.loginToken
 
   if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith('Bearer')
+    // req.headers.authorization &&
+    // req.headers.authorization.startsWith('Bearer')
+    loginToken
   ) {
     try {
       // Get token from header
-      token = req.headers.authorization.split(' ')[1]
-
+      // token = req.headers.authorization.split(' ')[1]
+      token = loginToken
       // Verify token
+
       const decoded = jwt.verify(
         token,
         process.env.JWT_SECRET as string

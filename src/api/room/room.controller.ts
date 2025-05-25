@@ -26,7 +26,8 @@ export class RoomController {
   static async addRoom(req: Request, res: Response) {
     try {
       const room = req.body
-      //   room.createdBy = req.user.id
+
+      // room.createdBy = req.user.id
       const addedRoom = await RoomService.add(room)
       res.json(addedRoom)
     } catch (err: any) {
