@@ -13,11 +13,7 @@ export const setupSocketAPI = async (server: HttpServer) => {
 
   const io = new Server(server, {
     cors: {
-      origin:
-        process.env.NODE_ENV === 'production'
-          ? false
-          : ['http://127.0.0.1:3000', 'http://localhost:3000'],
-      credentials: true,
+      origin: '*',
     },
   })
 
@@ -26,6 +22,7 @@ export const setupSocketAPI = async (server: HttpServer) => {
 
   io.on('connection', (socket) => {
     logger.info(`New client connected: ${socket.id}`)
+    console.log(`New client connected: ${socket.id}`)
 
     socket.on('join-room', async (room: string) => {
       if (socket.rooms.has(room)) return
@@ -35,9 +32,12 @@ export const setupSocketAPI = async (server: HttpServer) => {
       // Fetch current members
       const members = await pubClient.sMembers(`room:${room}:members`)
       io.to(room).emit('room-members', members)
+      console.log(
+        `Client: ${socket.id} joined room: ${room}, members: ${members.length}`
+      )
     })
 
-    socket.on('leave-room', async (room: string) => {
+    socket.on('user-left', async (room: string) => {
       socket.leave(room)
       logger.info(`Client: ${socket.id} left room: ${room}`)
       await pubClient.sRem(`room:${room}:members`, socket.id)
@@ -45,6 +45,9 @@ export const setupSocketAPI = async (server: HttpServer) => {
       // Fetch current members after leaving
       const members = await pubClient.sMembers(`room:${room}:members`)
       io.to(room).emit('room-members', members)
+      console.log(
+        `Client: ${socket.id} leaved room: ${room}, members: ${members.length}`
+      )
     })
 
     // Just before the socket is disconnected

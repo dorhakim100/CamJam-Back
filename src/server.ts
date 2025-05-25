@@ -61,6 +61,7 @@ async function init() {
 
     // Setup Socket.IO
     await setupSocketAPI(server)
+    console.log('✅ Socket.IO setup complete')
 
     // Serve frontend in production
     app.get('/**', (req, res) => {
