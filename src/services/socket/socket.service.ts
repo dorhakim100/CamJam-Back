@@ -22,7 +22,6 @@ export const setupSocketAPI = async (server: HttpServer) => {
 
   io.on('connection', (socket) => {
     logger.info(`New client connected: ${socket.id}`)
-    console.log(`New client connected: ${socket.id}`)
 
     socket.on('join-room', async (room: string) => {
       if (socket.rooms.has(room)) return
@@ -30,12 +29,36 @@ export const setupSocketAPI = async (server: HttpServer) => {
       logger.info(`Client: ${socket.id} joined room: ${room}`)
       await pubClient.sAdd(`room:${room}:members`, socket.id)
       // Fetch current members
-      const members = await pubClient.sMembers(`room:${room}:members`)
+      const memberIds = await pubClient.sMembers(`room:${room}:members`)
+      const members = await Promise.all(
+        memberIds.map(async (id) => {
+          console.log('id:', id)
+
+          let retrivedUser = await pubClient.get(`user:${id}`)
+          console.log('retrivedUser:', retrivedUser)
+
+          return retrivedUser ? JSON.parse(retrivedUser) : null
+        })
+      )
       io.to(room).emit('room-members', members)
+
+      // io.to(room).emit('room-members', members)
       console.log(
         `Client: ${socket.id} joined room: ${room}, members: ${members.length}`
       )
+
+      io.to(room).emit('members-change', members)
     })
+
+    socket.on(
+      'set-user-socket',
+      async (user: { id: string; name: string; imgUrl: string }) => {
+        // Store JSON string for this socket (or user ID)
+        console.log(user)
+
+        await pubClient.set(`user:${socket.id}`, JSON.stringify(user))
+      }
+    )
 
     socket.on('user-left', async (room: string) => {
       socket.leave(room)
@@ -43,11 +66,20 @@ export const setupSocketAPI = async (server: HttpServer) => {
       await pubClient.sRem(`room:${room}:members`, socket.id)
 
       // Fetch current members after leaving
-      const members = await pubClient.sMembers(`room:${room}:members`)
+      const memberIds = await pubClient.sMembers(`room:${room}:members`)
+      const members = await Promise.all(
+        memberIds.map(async (id) => {
+          let retrivedUser = await pubClient.get(`user:${id}`)
+          console.log(id)
+
+          return retrivedUser ? JSON.parse(retrivedUser) : null
+        })
+      )
       io.to(room).emit('room-members', members)
       console.log(
         `Client: ${socket.id} leaved room: ${room}, members: ${members.length}`
       )
+      io.to(room).emit('members-change', members)
     })
 
     // Just before the socket is disconnected
