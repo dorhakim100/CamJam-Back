@@ -1,6 +1,10 @@
 import { Room, IRoom } from './room.model'
 import { logger } from '../../services/logger.service'
+import type { Room as PrismaRoom } from '@prisma/client'
 
+export interface RoomWithHostName extends PrismaRoom {
+  hostFullName: string
+}
 export class RoomService {
   static async query(filterBy: { txt?: string; hostId?: string } = {}) {
     try {
@@ -11,7 +15,20 @@ export class RoomService {
         //     { host_id: { contains: filterBy.userId, mode: 'insensitive' } },
         //   ],
         // },
+        include: {
+          // agregate host's fullname
+          host: {
+            select: { fullname: true },
+          },
+        },
       })
+      return rooms.map((r) => ({
+        // Prisma will return agregation wrraped in an object
+
+        ...r,
+
+        hostFullName: r.host.fullname,
+      }))
       return rooms
     } catch (err) {
       logger.error('Failed to query rooms', err)
@@ -21,10 +38,21 @@ export class RoomService {
 
   static async getById(roomId: string) {
     try {
-      const addRoom = await Room.findUnique({
+      const room = await Room.findUnique({
         where: { id: roomId },
+        include: {
+          host: {
+            select: { fullname: true },
+          },
+        },
       })
-      return addRoom
+      if (!room) return null
+      return {
+        ...room,
+
+        hostFullName: room.host.fullname,
+      }
+      return room
     } catch (err) {
       logger.error(`Failed to get addRoom ${roomId}`, err)
       throw err
