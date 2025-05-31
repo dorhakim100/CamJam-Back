@@ -57,6 +57,7 @@ export const setupSocketAPI = async (server: HttpServer) => {
         console.log(user)
 
         await pubClient.set(`user:${socket.id}`, JSON.stringify(user))
+        await pubClient.set(`userSocket:${user.id}`, socket.id)
       }
     )
 
@@ -75,10 +76,13 @@ export const setupSocketAPI = async (server: HttpServer) => {
           return retrivedUser ? JSON.parse(retrivedUser) : null
         })
       )
+      console.log('room: ', room)
+
       io.to(room).emit('room-members', members)
       console.log(
         `Client: ${socket.id} leaved room: ${room}, members: ${members.length}`
       )
+
       io.to(room).emit('members-change', members)
     })
 
@@ -91,6 +95,84 @@ export const setupSocketAPI = async (server: HttpServer) => {
         io.to(room).emit('room-members', members)
       }
     })
+
+    // 7) WEbrtc SIGNALING: forward “offer”, “answer”, and “ice-candidate” to the intended peer
+    //    Each handler expects a payload `{ to: <targetSocketId>, ... }`. We use socket.to(to).emit(...)
+
+    socket.on(
+      'offer',
+      async (data: {
+        to: string
+        offer: RTCSessionDescriptionInit
+        room: string
+      }) => {
+        const { to, offer, room } = data
+        console.log('to: ', to)
+        console.log('offer: ', offer)
+        logger.info(`room: ${room}`)
+        let retrivedUserSocketId = await pubClient.get(`userSocket:${to}`)
+
+        if (!retrivedUserSocketId) {
+          logger.error(`User with socket ID ${to} not found`)
+          return
+        }
+        logger.info(
+          `🌐 OFFER from ${socket.id} → ${retrivedUserSocketId} (room=${room})`
+        )
+        // Simply relay the entire offer object to the peer “to”. The peer “to” should have already joined that room.
+        socket.to(retrivedUserSocketId).emit('offer', {
+          from: socket.id,
+          offer,
+          room,
+        })
+      }
+    )
+
+    socket.on(
+      'answer',
+      async (data: { to: string; answer: RTCSessionDescriptionInit }) => {
+        const { to, answer } = data
+        console.log('to: ', to)
+
+        let retrivedUserSocketId = await pubClient.get(`userSocket:${to}`)
+
+        if (!retrivedUserSocketId) {
+          logger.error(`User with socket ID ${to} not found`)
+          return
+        }
+
+        logger.info(`🌐 ANSWER from ${socket.id} → ${to}`)
+        socket.to(retrivedUserSocketId).emit('answer', {
+          from: socket.id,
+          answer,
+        })
+      }
+    )
+
+    socket.on(
+      'ice-candidate',
+      async (data: { to: string; candidate: RTCIceCandidateInit }) => {
+        const { to, candidate } = data
+        console.log('to: ', to)
+
+        let retrivedUserSocketId = await pubClient.get(`userSocket:${to}`)
+        console.log('retrivedUserSocketId: ', retrivedUserSocketId)
+
+        if (!retrivedUserSocketId) {
+          logger.error(`User with socket ID ${to} not found`)
+          return
+        }
+        // logger.info(
+        //   `🌐 ICE from ${socket.id} → ${to} ; candidate: ${JSON.stringify(
+        //     candidate
+        //   )}`
+        // )
+        socket.to(retrivedUserSocketId).emit('ice-candidate', {
+          from: socket.id,
+          candidate,
+        })
+      }
+    )
 
     socket.on('chat-send-msg', (data: { room: string; msg: any }) => {
       logger.info(
