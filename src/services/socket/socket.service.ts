@@ -24,37 +24,38 @@ export const setupSocketAPI = async (server: HttpServer) => {
     logger.info(`New client connected: ${socket.id}`)
 
     socket.on('join-room', async (room: string) => {
-      if (socket.rooms.has(room)) return
-      socket.join(room)
-      logger.info(`Client: ${socket.id} joined room: ${room}`)
-      await pubClient.sAdd(`room:${room}:members`, socket.id)
-      // Fetch current members
-      const memberIds = await pubClient.sMembers(`room:${room}:members`)
-      const members = await Promise.all(
-        memberIds.map(async (id) => {
-          console.log('id:', id)
+      try {
+        if (socket.rooms.has(room)) return
+        socket.join(room)
+        logger.info(`Client: ${socket.id} joined room: ${room}`)
+        await pubClient.sAdd(`room:${room}:members`, socket.id)
 
-          let retrivedUser = await pubClient.get(`user:${id}`)
-          console.log('retrivedUser:', retrivedUser)
+        // Fetch current members with error handling
+        const memberIds = await pubClient.sMembers(`room:${room}:members`)
+        const members = await Promise.all(
+          memberIds.map(async (id) => {
+            try {
+              let retrivedUser = await pubClient.get(`user:${id}`)
+              return retrivedUser ? JSON.parse(retrivedUser) : null
+            } catch (error) {
+              logger.error(`Error fetching user ${id}:`, error)
+              return null
+            }
+          })
+        )
 
-          return retrivedUser ? JSON.parse(retrivedUser) : null
-        })
-      )
-      io.to(room).emit('room-members', members)
-
-      // io.to(room).emit('room-members', members)
-      console.log(
-        `Client: ${socket.id} joined room: ${room}, members: ${members.length}`
-      )
-
-      io.to(room).emit('members-change', members)
+        // Filter out null members before emitting
+        const validMembers = members.filter(Boolean)
+        io.to(room).emit('members-change', validMembers)
+      } catch (error) {
+        logger.error(`Error in join-room handler:`, error)
+      }
     })
 
     socket.on(
       'set-user-socket',
       async (user: { id: string; name: string; imgUrl: string }) => {
         // Store JSON string for this socket (or user ID)
-        console.log(user)
 
         await pubClient.set(`user:${socket.id}`, JSON.stringify(user))
         await pubClient.set(`userSocket:${user.id}`, socket.id)
@@ -71,7 +72,6 @@ export const setupSocketAPI = async (server: HttpServer) => {
       const members = await Promise.all(
         memberIds.map(async (id) => {
           let retrivedUser = await pubClient.get(`user:${id}`)
-          console.log(id)
 
           return retrivedUser ? JSON.parse(retrivedUser) : null
         })
@@ -107,69 +107,108 @@ export const setupSocketAPI = async (server: HttpServer) => {
         room: string
       }) => {
         const { to, offer, room } = data
-        console.log('to: ', to)
-        console.log('offer: ', offer)
-        logger.info(`room: ${room}`)
-        let retrivedUserSocketId = await pubClient.get(`userSocket:${to}`)
+        console.log('data: ', data)
 
-        if (!retrivedUserSocketId) {
-          logger.error(`User with socket ID ${to} not found`)
+        // Identify if 'to' is a socket ID or UUID
+        const idType = identifyIdType(to)
+        let modifiedTo
+        if (idType === 'unknown') {
+          logger.error(`Invalid ID format: ${to}`)
           return
         }
-        logger.info(
-          `🌐 OFFER from ${socket.id} → ${retrivedUserSocketId} (room=${room})`
-        )
-        // Simply relay the entire offer object to the peer “to”. The peer “to” should have already joined that room.
-        socket.to(retrivedUserSocketId).emit('offer', {
+        if (idType === 'uuid') {
+          // If 'to' is a UUID, we need to fetch the corresponding socket ID
+          const userSocketId = await pubClient.get(`userSocket:${to}`)
+          if (!userSocketId) {
+            logger.error(`User with UUID ${to} not found`)
+            return
+          }
+          modifiedTo = userSocketId
+        } else {
+          // If 'to' is a socket ID, we can use it directly
+          modifiedTo = to
+        }
+
+        logger.info(`🌐 OFFER from ${socket.id} → ${modifiedTo} (room=${room})`)
+
+        // Include the room in the offer data
+        socket.to(modifiedTo).emit('offer', {
           from: socket.id,
           offer,
-          room,
+          room, // Include room in the offer data
         })
       }
     )
 
     socket.on(
       'answer',
-      async (data: { to: string; answer: RTCSessionDescriptionInit }) => {
-        const { to, answer } = data
-        console.log('to: ', to)
-
-        let retrivedUserSocketId = await pubClient.get(`userSocket:${to}`)
-
-        if (!retrivedUserSocketId) {
-          logger.error(`User with socket ID ${to} not found`)
+      async (data: {
+        to: string
+        answer: RTCSessionDescriptionInit
+        room: string
+      }) => {
+        const { to, answer, room } = data
+        const idType = identifyIdType(to)
+        let modifiedTo
+        if (idType === 'unknown') {
+          logger.error(`Invalid ID format: ${to}`)
           return
         }
+        if (idType === 'uuid') {
+          // If 'to' is a UUID, we need to fetch the corresponding socket ID
+          const userSocketId = await pubClient.get(`userSocket:${to}`)
+          if (!userSocketId) {
+            logger.error(`User with UUID ${to} not found`)
+            return
+          }
+          modifiedTo = userSocketId
+        } else {
+          // If 'to' is a socket ID, we can use it directly
+          modifiedTo = to
+        }
 
-        logger.info(`🌐 ANSWER from ${socket.id} → ${to}`)
-        socket.to(retrivedUserSocketId).emit('answer', {
+        logger.info(`🌐 ANSWER from ${socket.id} → ${to} (room=${room})`)
+        socket.to(modifiedTo).emit('answer', {
           from: socket.id,
           answer,
+          room, // Include room in answer data
         })
       }
     )
 
     socket.on(
       'ice-candidate',
-      async (data: { to: string; candidate: RTCIceCandidateInit }) => {
-        const { to, candidate } = data
-        console.log('to: ', to)
-
-        let retrivedUserSocketId = await pubClient.get(`userSocket:${to}`)
-        console.log('retrivedUserSocketId: ', retrivedUserSocketId)
-
-        if (!retrivedUserSocketId) {
-          logger.error(`User with socket ID ${to} not found`)
+      async (data: {
+        to: string
+        candidate: RTCIceCandidateInit
+        room: string
+      }) => {
+        const { to, candidate, room } = data
+        const idType = identifyIdType(to)
+        let modifiedTo
+        if (idType === 'unknown') {
+          logger.error(`Invalid ID format: ${to}`)
           return
         }
-        // logger.info(
-        //   `🌐 ICE from ${socket.id} → ${to} ; candidate: ${JSON.stringify(
-        //     candidate
-        //   )}`
-        // )
-        socket.to(retrivedUserSocketId).emit('ice-candidate', {
+        if (idType === 'uuid') {
+          // If 'to' is a UUID, we need to fetch the corresponding socket ID
+          const userSocketId = await pubClient.get(`userSocket:${to}`)
+          if (!userSocketId) {
+            logger.error(`User with UUID ${to} not found`)
+            return
+          }
+          modifiedTo = userSocketId
+        } else {
+          // If 'to' is a socket ID, we can use it directly
+          modifiedTo = to
+        }
+        logger.info(
+          `🌐 ICE-CANDIDATE from ${socket.id} → ${modifiedTo} (room=${room})`
+        )
+        socket.to(modifiedTo).emit('ice-candidate', {
           from: socket.id,
           candidate,
+          room, // Include room in ICE candidate data
         })
       }
     )
@@ -197,4 +236,24 @@ export const setupSocketAPI = async (server: HttpServer) => {
     await subClient.disconnect()
     process.exit(0)
   })
+}
+
+function identifyIdType(id: string): 'socket' | 'uuid' | 'unknown' {
+  // 1) Check for PostgreSQL UUID (hex digits, with hyphens in 8-4-4-4-12 pattern)
+  const uuidRegex =
+    /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
+  if (uuidRegex.test(id)) {
+    return 'uuid'
+  }
+
+  // 2) Check for Socket.IO’s default ID format:
+  //    • exactly 20 characters
+  //    • characters from A–Z, a–z, 0–9, “–” or “_” (URL-safe base64 subset)
+  const socketIdRegex = /^[A-Za-z0-9_-]{20}$/
+  if (socketIdRegex.test(id)) {
+    return 'socket'
+  }
+
+  // 3) If neither pattern matched, return “unknown”
+  return 'unknown'
 }
