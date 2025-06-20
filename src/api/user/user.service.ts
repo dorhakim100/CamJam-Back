@@ -24,6 +24,7 @@ export class UserService {
       const user = await User.findUnique({
         where: { id: userId },
       })
+
       return user
     } catch (err) {
       logger.error(`Failed to get user ${userId}`, err)

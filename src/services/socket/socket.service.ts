@@ -36,7 +36,9 @@ export const setupSocketAPI = async (server: HttpServer) => {
           memberIds.map(async (id) => {
             try {
               let retrivedUser = await pubClient.get(`user:${id}`)
-              return retrivedUser ? JSON.parse(retrivedUser) : null
+              if (!retrivedUser) return null
+              const user = JSON.parse(retrivedUser)
+              return { ...user, socketId: id }
             } catch (error) {
               logger.error(`Error fetching user ${id}:`, error)
               return null
@@ -46,6 +48,7 @@ export const setupSocketAPI = async (server: HttpServer) => {
 
         // Filter out null members before emitting
         const validMembers = members.filter(Boolean)
+
         io.to(room).emit('members-change', validMembers)
       } catch (error) {
         logger.error(`Error in join-room handler:`, error)
@@ -54,8 +57,15 @@ export const setupSocketAPI = async (server: HttpServer) => {
 
     socket.on(
       'set-user-socket',
-      async (user: { id: string; name: string; imgUrl: string }) => {
+      async (user: {
+        id: string
+        name: string
+        imgUrl: string
+        isVideoOn: Boolean | null
+        isAudioOn: Boolean | null
+      }) => {
         // Store JSON string for this socket (or user ID)
+        console.log(user)
 
         await pubClient.set(`user:${socket.id}`, JSON.stringify(user))
         await pubClient.set(`userSocket:${user.id}`, socket.id)
@@ -72,10 +82,13 @@ export const setupSocketAPI = async (server: HttpServer) => {
       const members = await Promise.all(
         memberIds.map(async (id) => {
           let retrivedUser = await pubClient.get(`user:${id}`)
-
-          return retrivedUser ? JSON.parse(retrivedUser) : null
+          if (!retrivedUser) return null
+          const user = JSON.parse(retrivedUser)
+          return { ...user, socketId: id }
         })
       )
+      console.log(members)
+
       console.log('room: ', room)
 
       io.to(room).emit('room-members', members)
@@ -129,13 +142,13 @@ export const setupSocketAPI = async (server: HttpServer) => {
           modifiedTo = to
         }
 
-        logger.info(`🌐 OFFER from ${socket.id} → ${modifiedTo} (room=${room})`)
+        // logger.info(`🌐 OFFER from ${socket.id} → ${modifiedTo} (room=${room})`)
 
         // Include the room in the offer data
         socket.to(modifiedTo).emit('offer', {
           from: socket.id,
           offer,
-          room, // Include room in the offer data
+          // room, // Include room in the offer data
         })
       }
     )
@@ -167,11 +180,11 @@ export const setupSocketAPI = async (server: HttpServer) => {
           modifiedTo = to
         }
 
-        logger.info(`🌐 ANSWER from ${socket.id} → ${to} (room=${room})`)
+        // logger.info(`🌐 ANSWER from ${socket.id} → ${to} (room=${room})`)
         socket.to(modifiedTo).emit('answer', {
           from: socket.id,
           answer,
-          room, // Include room in answer data
+          // room, // Include room in answer data
         })
       }
     )
@@ -202,13 +215,13 @@ export const setupSocketAPI = async (server: HttpServer) => {
           // If 'to' is a socket ID, we can use it directly
           modifiedTo = to
         }
-        logger.info(
-          `🌐 ICE-CANDIDATE from ${socket.id} → ${modifiedTo} (room=${room})`
-        )
+        // logger.info(
+        //   `🌐 ICE-CANDIDATE from ${socket.id} → ${modifiedTo} (room=${room})`
+        // )
         socket.to(modifiedTo).emit('ice-candidate', {
           from: socket.id,
           candidate,
-          room, // Include room in ICE candidate data
+          // room, // Include room in ICE candidate data
         })
       }
     )

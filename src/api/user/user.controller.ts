@@ -25,7 +25,8 @@ export class UserController {
   static async getRememberMe(req: Request, res: Response) {
     try {
       const requiredId = req.params.id
-      const user = await UserService.getById(req.params.id)
+
+      const user = await UserService.getById(requiredId)
       if (!user) {
         return res.status(404).send({ err: 'User not found' })
       }

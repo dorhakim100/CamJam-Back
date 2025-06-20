@@ -36,7 +36,7 @@ model Room {
   is_private       Boolean  @default(false)
   max_participants Int      @default(10)
   created_at       DateTime @default(now())
-
+  password         String?
 
 
 
