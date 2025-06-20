@@ -49,6 +49,7 @@ export class RoomController {
   static async deleteRoom(req: Request, res: Response) {
     try {
       await RoomService.remove(req.params.id)
+
       res.send({ msg: 'Deleted successfully' })
     } catch (err: any) {
       logger.error('Failed to delete room', err)

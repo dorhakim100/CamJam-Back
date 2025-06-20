@@ -1,6 +1,7 @@
 import { Request, Response } from 'express'
 import { AuthService } from './auth.service'
 import { logger } from '../../services/logger.service'
+import { setLoggedinUser } from '../../middleware/setupAls.middleware'
 
 export class AuthController {
   static async login(req: Request, res: Response) {
@@ -9,8 +10,8 @@ export class AuthController {
     try {
       const user = await AuthService.login(email, password, isRemember)
       const loginToken = AuthService.getLoginToken(user)
-
       res.cookie('loginToken', loginToken, { sameSite: 'none', secure: true })
+      setLoggedinUser(user)
       res.json(user)
     } catch (err: any) {
       logger.error('Failed to Login ' + err)
@@ -28,8 +29,8 @@ export class AuthController {
 
       const account = await AuthService.signup(credentials)
       const loginToken = AuthService.getLoginToken(account)
-
       res.cookie('loginToken', loginToken, { sameSite: 'none', secure: true })
+      setLoggedinUser(account)
       res.json(account)
     } catch (err: any) {
       logger.error('Failed to signup ' + err)

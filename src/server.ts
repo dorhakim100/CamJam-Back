@@ -11,6 +11,7 @@ import { authRoutes } from './api/auth/auth.routes'
 import { userRoutes } from './api/user/user.routes'
 // import { itemRoutes } from './api/item/item.routes'
 import { roomRoutes } from './api/room/room.routes'
+import { chatRoutes } from './api/chat'
 
 import { setupSocketAPI } from './services/socket/socket.service'
 import { setupAsyncLocalStorage } from './middleware/setupAls.middleware'
@@ -58,6 +59,7 @@ async function init() {
     app.use('/api/auth', authRoutes)
     app.use('/api/user', userRoutes)
     app.use('/api/room', roomRoutes)
+    app.use('/api/chat', chatRoutes)
 
     // Setup Socket.IO
     await setupSocketAPI(server)

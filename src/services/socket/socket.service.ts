@@ -87,9 +87,6 @@ export const setupSocketAPI = async (server: HttpServer) => {
           return { ...user, socketId: id }
         })
       )
-      console.log(members)
-
-      console.log('room: ', room)
 
       io.to(room).emit('room-members', members)
       console.log(
@@ -97,6 +94,13 @@ export const setupSocketAPI = async (server: HttpServer) => {
       )
 
       io.to(room).emit('members-change', members)
+    })
+    socket.on('end-meeting', async (room: string) => {
+      socket.leave(room)
+      logger.info(`User removed room: ${room}`)
+      // await pubClient.sRem(`room:${room}:members`, socket.id)
+
+      io.to(room).emit('end-meeting')
     })
 
     // Just before the socket is disconnected

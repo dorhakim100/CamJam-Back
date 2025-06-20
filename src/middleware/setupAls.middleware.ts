@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express'
 import { AsyncLocalStorage } from 'async_hooks'
 
-const asyncLocalStorage = new AsyncLocalStorage()
+export const asyncLocalStorage: any = new AsyncLocalStorage()
 
 export function setupAsyncLocalStorage(
   req: Request,
@@ -21,5 +21,8 @@ export const getLoggedinUser = () => {
 
 export const setLoggedinUser = (user: any) => {
   const storage = asyncLocalStorage.getStore() as { loggedinUser: any } | null
+
   if (storage) storage.loggedinUser = user
+  const userAfter = getLoggedinUser()
+  console.log(userAfter)
 }

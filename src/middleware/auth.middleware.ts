@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
 import { IUser } from '../api/user/user.model'
+import { asyncLocalStorage, getLoggedinUser } from './setupAls.middleware'
 
 interface JWTPayload {
   id: string
@@ -53,4 +54,32 @@ export const protect = async (
     res.status(401).json({ message: 'Not authorized, no token' })
     return
   }
+}
+
+export function requireAuth(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) {
+  const loginToken = req.cookies.loginToken
+  if (!loginToken) return res.status(401).send('Not Authenticated')
+  const token = loginToken
+  // Verify token
+
+  const loggedinUser = jwt.verify(
+    token,
+    process.env.JWT_SECRET as string
+  ) as JWTPayload
+
+  if (!loggedinUser) return res.status(401).send('Not Authenticated')
+
+  const { id, userId } = req.body
+
+  if (id !== loggedinUser.id) return res.status(401).send('Not Authenticated')
+
+  // if (config.isGuestMode && !loggedinUser) {
+  //   req.loggedinUser = { _id: '', fullname: 'Guest' }
+  //   return next()
+  // }
+  next()
 }
