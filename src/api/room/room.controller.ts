@@ -1,6 +1,8 @@
 import { Request, Response } from 'express'
 import { RoomService } from './room.service'
 import { logger } from '../../services/logger.service'
+import { addChatService } from '../chat/chat.service'
+import { getChatByRoomId } from '../chat/chat.controller'
 
 export class RoomController {
   static async getRooms(req: Request, res: Response) {
@@ -15,8 +17,10 @@ export class RoomController {
 
   static async getRoom(req: Request, res: Response) {
     try {
-      const room = await RoomService.getById(req.params.id)
-      res.json(room)
+      const roomId = req.params.id
+      const room = await RoomService.getById(roomId)
+      const roomChat = await getChatByRoomId(roomId)
+      res.json({ ...room, chat: roomChat })
     } catch (err: any) {
       logger.error('Failed to get room', err)
       res.status(500).send({ err: 'Failed to get room' })
@@ -29,10 +33,27 @@ export class RoomController {
 
       // room.createdBy = req.user.id
       const addedRoom = await RoomService.add(room)
-      res.json(addedRoom)
+      const newChat = await RoomController._addChat(addedRoom.id)
+
+      res.json({ ...addedRoom, chat: newChat })
     } catch (err: any) {
       logger.error('Failed to add room', err)
       res.status(500).send({ err: 'Failed to add room' })
+    }
+  }
+
+  static async _addChat(roomId: string) {
+    try {
+      const chatToAdd = {
+        roomId,
+        messages: [],
+      }
+      const addedChat = await addChatService(chatToAdd)
+
+      return addedChat
+    } catch (error) {
+      logger.error('Failed to add chat to room', error)
+      throw error
     }
   }
 
