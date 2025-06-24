@@ -9,6 +9,7 @@ interface JWTPayload {
   fullname: string
   iat: number
   exp: number
+  isGuest?: boolean
 }
 
 interface AuthRequest extends Request {
@@ -39,6 +40,9 @@ export const protect = async (
         token,
         process.env.JWT_SECRET as string
       ) as JWTPayload
+
+      if (decoded.isGuest)
+        res.status(401).json({ message: 'Not authorized, token failed' })
 
       // Add user from payload
       req.user = decoded

@@ -234,6 +234,7 @@ export const setupSocketAPI = async (server: HttpServer) => {
       logger.info(
         `New chat msg from socket [${socket.id}] in room [${data.room}]`
       )
+
       io.to(data.room).emit('chat-add-msg', data.msg)
     })
 

@@ -21,6 +21,7 @@ model User {
   fullname  String
   imgUrl String?
   rooms         Room[]   @relation("HostRooms")
+  isGuest Boolean?
 
 
   @@map("users")     // ← tell Prisma this model lives in the `users` table

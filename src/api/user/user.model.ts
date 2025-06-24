@@ -14,6 +14,7 @@ export interface ICreateUser {
   fullname: string
   imgUrl?: string
   isRemember?: boolean
+  isBoolean?: boolean
 }
 
 /**
@@ -32,6 +33,8 @@ export const User = {
    */
   async createWithHash(data: ICreateUser): Promise<IUser> {
     const hashedPassword = await hash(data.password, 10)
+    console.log(data)
+
     if (data.isRemember) delete data.isRemember
     const user = await prisma.user.create({
       data: {
@@ -39,7 +42,6 @@ export const User = {
         password: hashedPassword,
       },
     })
-    console.log('User created:', user)
 
     return user
   },
