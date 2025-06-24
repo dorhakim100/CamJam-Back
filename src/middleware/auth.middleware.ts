@@ -66,6 +66,8 @@ export function requireAuth(
   next: NextFunction
 ) {
   const loginToken = req.cookies.loginToken
+  console.log(req.cookies)
+
   if (!loginToken) return res.status(401).send('Not Authenticated')
   const token = loginToken
   // Verify token

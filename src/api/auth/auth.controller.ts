@@ -8,8 +8,11 @@ export class AuthController {
     const { email, password } = req.body
     const isRemember = req.body.isRemember
     try {
+      res.clearCookie('loginToken', { sameSite: 'none', secure: true })
       const user = await AuthService.login(email, password, isRemember)
       const loginToken = AuthService.getLoginToken(user)
+      console.log('loginToken: ', loginToken)
+
       res.cookie('loginToken', loginToken, { sameSite: 'none', secure: true })
       setLoggedinUser(user)
       res.json(user)
@@ -40,7 +43,9 @@ export class AuthController {
 
   static async logout(req: Request, res: Response) {
     try {
-      res.clearCookie('loginToken')
+      // res.clearCookie('loginToken')
+      res.clearCookie('loginToken', { sameSite: 'none', secure: true })
+
       res.send({ msg: 'Logged out successfully' })
     } catch (err: any) {
       res.status(500).send({ err: 'Failed to logout' })
