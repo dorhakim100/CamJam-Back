@@ -2,9 +2,9 @@
   "name": "backend-starter",
   "version": "1.0.0",
   "description": "TypeScript Express Backend Starter with MongoDB and Socket.IO",
-  "main": "dist/server.js",
+  "main": "dist/server.ts",
   "scripts": {
-    "start": "node dist/server.js",
+    "start": "node dist/server.ts",
     "server:dev": "nodemon src/server.ts",
     "dev": "nodemon src/server.ts",
     "build": "tsc",
