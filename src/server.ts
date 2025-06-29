@@ -47,6 +47,12 @@ async function init() {
           'http://localhost:3000',
           'http://127.0.0.1:5173',
           'http://localhost:5173',
+          'http://localhost:8081', // ✅ React Native Metro Bundler
+          'http://127.0.0.1:8081', // ✅ Alternate localhost for React Native
+          'http://192.168.200.208:8081', // ✅ Alternate localhost for React Native
+          'http://192.168.200.208:8082', // ✅ Alternate localhost for React Native
+          'http://192.168.1.238:8081', // ✅ Alternate localhost for React Native
+          'http://192.168.1.238:8082', // ✅ Alternate localhost for React Native
         ],
         credentials: true,
       }
