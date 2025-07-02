@@ -92,7 +92,12 @@ export const setupSocketAPI = async (server: HttpServer) => {
       console.log(
         `Client: ${socket.id} leaved room: ${room}, members: ${members.length}`
       )
+      let retrivedUser = await pubClient.get(`user:${socket.id}`)
+      console.log('retrivedUser:', retrivedUser)
+      if (!retrivedUser) throw new Error(`User with ID ${socket.id} not found`)
+      const parsedUser = JSON.parse(retrivedUser)
 
+      io.to(room).emit('user-left', parsedUser.id)
       io.to(room).emit('members-change', members)
     })
     socket.on('end-meeting', async (room: string) => {
