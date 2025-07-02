@@ -230,6 +230,47 @@ export const setupSocketAPI = async (server: HttpServer) => {
       }
     )
 
+    socket.on(
+      'media-state-changed',
+      async (data: {
+        roomId: string
+        userId: string
+        stateToChange: { isVideo: boolean; isAudio: boolean }
+      }) => {
+        try {
+          const { roomId, userId, stateToChange } = data
+          console.log('data:', data)
+          logger.info(
+            `Media state changed from socket [${socket.id}] in room [${data.roomId}]`
+          )
+
+          const updatedUser = {
+            id: userId,
+            isVideoOn: stateToChange.isVideo,
+            isAudioOn: stateToChange.isAudio,
+          }
+
+          const userSocketId = await pubClient.get(`userSocket:${userId}`)
+          let retrivedUser = await pubClient.get(`user:${userSocketId}`)
+          if (!retrivedUser) throw new Error(`User with ID ${userId} not found`)
+          const parsedUser = JSON.parse(retrivedUser)
+          await pubClient.set(
+            `user:${socket.id}`,
+            JSON.stringify({
+              ...parsedUser,
+              isVideoOn: stateToChange.isVideo,
+              isAudioOn: stateToChange.isAudio,
+            })
+          )
+
+          io.to(roomId).emit('change-media-state', updatedUser)
+        } catch (err) {
+          logger.error('Error in media-state-changed:', err)
+          throw err
+        }
+      }
+    )
+
     socket.on('chat-send-msg', (data: { room: string; msg: any }) => {
       logger.info(
         `New chat msg from socket [${socket.id}] in room [${data.room}]`
