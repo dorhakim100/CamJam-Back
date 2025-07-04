@@ -94,7 +94,7 @@ export const setupSocketAPI = async (server: HttpServer) => {
       )
       let retrivedUser = await pubClient.get(`user:${socket.id}`)
       console.log('retrivedUser:', retrivedUser)
-      if (!retrivedUser) throw new Error(`User with ID ${socket.id} not found`)
+      if (!retrivedUser) return
       const parsedUser = JSON.parse(retrivedUser)
 
       io.to(room).emit('user-left', parsedUser.id)
