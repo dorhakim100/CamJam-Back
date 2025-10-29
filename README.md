@@ -16,7 +16,6 @@ The backend server for the CamJam video chat platform. Built with TypeScript and
 
 ## 🌐 Related Links
 
-- 🔗 **Live Site**: [https://camjam.onrender.com/](https://camjam.onrender.com/)
 - 💻 **Frontend Repository**: [https://github.com/dorhakim100/CamJam---Front](https://github.com/dorhakim100/CamJam---Front)
 
 ## 📦 Installation
